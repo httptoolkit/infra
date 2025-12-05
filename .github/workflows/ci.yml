@@ -1,0 +1,38 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  check:
+    name: "Validate config"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.10.7
+
+      - name: Tofu Format
+        run: tofu fmt -check
+
+      # Initialize providers with no backend (no state tracking)
+      - name: Tofu Init
+        run: tofu init -backend=false
+
+      # Basic syntax check:
+      - name: Tofu Validate
+        run: tofu validate
+
+      # Full linting:
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.60.0
+
+      - name: Run TFLint
+        run: |
+            tflint --init
+            tflint
+        env:
+          # Needs a token to download plugins from GitHub w/o rate limits
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

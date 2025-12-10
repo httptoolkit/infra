@@ -120,27 +120,26 @@ resource "kubectl_manifest" "main_gateway" {
           allowedRoutes = { namespaces = { from = "All" } }
         },
         {
-          name          = "https-httptoolkit-it"
+          name          = "https-httptoolk-it"
           port          = 443
           protocol      = "HTTPS"
           hostname      = "*.httptoolk.it"
           allowedRoutes = { namespaces = { from = "All" } }
           tls = {
             mode            = "Terminate"
-            certificateRefs = [{ kind = "Secret", name = "cert-httptoolkit-it" }]
+            certificateRefs = [{ kind = "Secret", name = "cert-httptoolk-it" }]
           }
         },
         {
-          name          = "app-port-4000"
-          port          = 4000
-          protocol      = "HTTP"
+          name          = "https-httptoolkit-tech"
+          port          = 443
+          protocol      = "HTTPS"
+          hostname      = "*.httptoolkit.tech"
           allowedRoutes = { namespaces = { from = "All" } }
-        },
-        {
-          name          = "app-port-4040"
-          port          = 4040
-          protocol      = "HTTP"
-          allowedRoutes = { namespaces = { from = "All" } }
+          tls = {
+            mode            = "Terminate"
+            certificateRefs = [{ kind = "Secret", name = "cert-httptoolkit-tech" }]
+          }
         }
       ]
       infrastructure = {

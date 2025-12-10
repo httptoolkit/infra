@@ -142,6 +142,8 @@ resource "kubectl_manifest" "main_gateway" {
       ]
       infrastructure = {
         annotations = {
+          "service.beta.kubernetes.io/scw-loadbalancer-type"         = "LB-S"
+          "service.beta.kubernetes.io/scw-loadbalancer-zone"         = var.zone
           "service.beta.kubernetes.io/scw-loadbalancer-use-hostname" = "true"
         }
       }

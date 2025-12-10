@@ -38,14 +38,6 @@ provider "kubernetes" {
   cluster_ca_certificate = base64decode(scaleway_k8s_cluster.main.kubeconfig[0].cluster_ca_certificate)
 }
 
-resource "scaleway_registry_namespace" "main" {
-  name        = "htk-registry"
-  description = "Main registry for HTK production images"
-  is_public   = true
-  region      = var.region
-  project_id  = var.project_id
-}
-
 resource "scaleway_vpc_private_network" "main" {
   name = "htk-production-vpc"
   tags = ["htk", "production"]
@@ -128,10 +120,6 @@ output "public_url_server_token" {
 output "kubeconfig" {
   value     = scaleway_k8s_cluster.main.kubeconfig[0].config_file
   sensitive = true
-}
-
-output "registry_endpoint" {
-  value = scaleway_registry_namespace.main.endpoint
 }
 
 output "ingress_ip" {

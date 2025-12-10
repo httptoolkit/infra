@@ -92,8 +92,11 @@ resource "kubectl_manifest" "gateway_class" {
     }
   })
 
-  # Wait for the software to be installed before creating the class definition
   depends_on = [helm_release.envoy_gateway]
+}
+
+resource "scaleway_lb_ip" "gateway_ip" {
+  zone = var.zone
 }
 
 resource "kubectl_manifest" "main_gateway" {
@@ -145,9 +148,16 @@ resource "kubectl_manifest" "main_gateway" {
           "service.beta.kubernetes.io/scw-loadbalancer-type"         = "LB-S"
           "service.beta.kubernetes.io/scw-loadbalancer-zone"         = var.zone
           "service.beta.kubernetes.io/scw-loadbalancer-use-hostname" = "true"
+
+          "service.beta.kubernetes.io/scw-loadbalancer-name"  = "httptoolkit-gateway"
+          "service.beta.kubernetes.io/scw-loadbalancer-ip-id" = scaleway_lb_ip.gateway_ip.id
         }
       }
     }
   })
-  depends_on = [helm_release.envoy_gateway, kubectl_manifest.letsencrypt_prod]
+  depends_on = [
+    helm_release.envoy_gateway,
+    kubectl_manifest.letsencrypt_prod,
+    scaleway_lb_ip.gateway_ip
+  ]
 }

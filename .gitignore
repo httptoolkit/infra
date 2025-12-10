@@ -12,6 +12,7 @@ crash.*.log
 # TF vars & secrets
 *.tfvars
 *.tfvars.json
+kubeconfig.yaml
 
 # TF local overrides
 override.tf

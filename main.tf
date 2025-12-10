@@ -115,6 +115,16 @@ data "kubernetes_service_v1" "ingress_nginx" {
   depends_on = [helm_release.ingress_nginx]
 }
 
+module "public_url_server" {
+  source = "./modules/k8s-project"
+  name   = "public-url-server"
+}
+
+output "public_url_server_token" {
+  value     = module.public_url_server.deployer_token
+  sensitive = true
+}
+
 output "kubeconfig" {
   value     = scaleway_k8s_cluster.main.kubeconfig[0].config_file
   sensitive = true
@@ -126,4 +136,14 @@ output "registry_endpoint" {
 
 output "ingress_ip" {
   value = data.kubernetes_service_v1.ingress_nginx.status[0].load_balancer[0].ingress[0].ip
+}
+
+output "ci_k8s_ca_cert" {
+  value     = scaleway_k8s_cluster.main.kubeconfig[0].cluster_ca_certificate
+  sensitive = true
+}
+
+output "ci_k8s_server" {
+  value     = scaleway_k8s_cluster.main.kubeconfig[0].host
+  sensitive = true
 }

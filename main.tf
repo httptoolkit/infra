@@ -37,13 +37,13 @@ resource "scaleway_k8s_pool" "main" {
   tags        = ["htk", "production"]
 }
 
-module "public_url_server" {
+module "public_endpoint" {
   source = "./modules/k8s-project"
-  name   = "public-url-server"
+  name   = "public-endpoint"
 }
 
-output "public_url_server_token" {
-  value     = module.public_url_server.deployer_token
+output "public_endpoint_server_token" {
+  value     = module.public_endpoint.deployer_token
   sensitive = true
 }
 

@@ -1,12 +1,18 @@
+variable "scw_access_key" {
+  description = "Scaleway Access Key"
+  type        = string
+  sensitive   = true
+}
+
+variable "scw_secret_key" {
+  description = "Scaleway Secret Key"
+  type        = string
+  sensitive   = true
+}
+
 variable "project_id" {
   type        = string
   description = "Scaleway Project ID"
-}
-
-variable "db_password" {
-  type        = string
-  sensitive   = true
-  description = "PostgreSQL user password"
 }
 
 variable "region" {

@@ -9,38 +9,31 @@ terraform {
 }
 
 provider "scaleway" {
+  access_key = var.scw_access_key
+  secret_key = var.scw_secret_key
   project_id = var.project_id
+
+  profile = "disabled"
 }
 
 resource "scaleway_vpc_private_network" "main" {
-  name = "k8s-db-private-network"
-  tags = ["tofu-playground"]
-}
+  name = "htk-production-vpc"
+  tags = ["htk", "production"]
 
-resource "scaleway_rdb_instance" "main" {
-  name           = "playground-db"
-  node_type      = "db-dev-s"
-  engine         = "PostgreSQL-15"
-  is_ha_cluster  = false
-  disable_backup = true
-  region         = var.region
-  user_name      = "tofu_user"
-  password       = var.db_password
-  tags           = ["tofu-playground"]
-
-  private_network {
-    pn_id       = scaleway_vpc_private_network.main.id
-    enable_ipam = true
-  }
+  project_id = var.project_id
+  region     = var.region
 }
 
 resource "scaleway_k8s_cluster" "main" {
-  name                        = "playground-cluster"
+  name                        = "htk-production-cluster"
   version                     = "1.34"
   cni                         = "cilium"
   delete_additional_resources = true
   private_network_id          = scaleway_vpc_private_network.main.id
-  tags                        = ["tofu-playground"]
+  tags                        = ["htk", "production"]
+
+  project_id = var.project_id
+  region     = var.region
 
   auto_upgrade {
     enable                        = true
@@ -51,17 +44,30 @@ resource "scaleway_k8s_cluster" "main" {
 
 resource "scaleway_k8s_pool" "main" {
   cluster_id  = scaleway_k8s_cluster.main.id
-  name        = "default-pool"
+  name        = "htk-production-pool"
   node_type   = "PLAY2-NANO"
   region      = var.region
   zone        = var.zone
   size        = 1
   min_size    = 1
-  max_size    = 1
+  max_size    = 3
   autoscaling = true
-  tags        = ["tofu-playground"]
+  tags        = ["htk", "production"]
 }
 
-output "db_endpoint" {
-  value = scaleway_rdb_instance.main.private_network[0].ip
+resource "scaleway_registry_namespace" "main" {
+  name        = "htk-registry"
+  description = "Main registry for HTK production images"
+  is_public   = true
+  region      = var.region
+  project_id  = var.project_id
+}
+
+output "kubeconfig" {
+  value     = scaleway_k8s_cluster.main.kubeconfig[0].config_file
+  sensitive = true
+}
+
+output "registry_endpoint" {
+  value = scaleway_registry_namespace.main.endpoint
 }

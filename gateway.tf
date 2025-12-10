@@ -80,6 +80,21 @@ resource "helm_release" "envoy_gateway" {
   depends_on = [kubectl_manifest.gateway_api_crds]
 }
 
+resource "kubectl_manifest" "gateway_class" {
+  yaml_body = yamlencode({
+    apiVersion = "gateway.networking.k8s.io/v1"
+    kind       = "GatewayClass"
+    metadata = {
+      name = "envoy-gateway"
+    }
+    spec = {
+      controllerName = "gateway.envoyproxy.io/gatewayclass-controller"
+    }
+  })
+
+  # Wait for the software to be installed before creating the class definition
+  depends_on = [helm_release.envoy_gateway]
+}
 
 resource "kubectl_manifest" "main_gateway" {
   yaml_body = yamlencode({

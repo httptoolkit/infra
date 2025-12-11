@@ -187,7 +187,7 @@ resource "kubectl_manifest" "main_gateway" {
           "service.beta.kubernetes.io/scw-loadbalancer-type"         = "LB-S"
           "service.beta.kubernetes.io/scw-loadbalancer-zone"         = var.zone
           "service.beta.kubernetes.io/scw-loadbalancer-use-hostname" = "true"
-          "service.beta.kubernetes.io/scw-loadbalancer-ip-id"        = scaleway_lb_ip.gateway_ip.id
+          "service.beta.kubernetes.io/scw-loadbalancer-ip-ids"       = scaleway_lb_ip.gateway_ip.id
         }
       }
     }

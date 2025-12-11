@@ -138,10 +138,6 @@ resource "kubectl_manifest" "gateway_class" {
   depends_on = [helm_release.envoy_gateway]
 }
 
-resource "scaleway_lb_ip" "gateway_ip" {
-  zone = var.zone
-}
-
 resource "kubectl_manifest" "main_gateway" {
   yaml_body = yamlencode({
     apiVersion = "gateway.networking.k8s.io/v1"
@@ -187,14 +183,12 @@ resource "kubectl_manifest" "main_gateway" {
           "service.beta.kubernetes.io/scw-loadbalancer-type"         = "LB-S"
           "service.beta.kubernetes.io/scw-loadbalancer-zone"         = var.zone
           "service.beta.kubernetes.io/scw-loadbalancer-use-hostname" = "true"
-          "service.beta.kubernetes.io/scw-loadbalancer-ip-ids"       = scaleway_lb_ip.gateway_ip.id
         }
       }
     }
   })
   depends_on = [
     helm_release.envoy_gateway,
-    kubectl_manifest.letsencrypt_prod,
-    scaleway_lb_ip.gateway_ip
+    kubectl_manifest.letsencrypt_prod
   ]
 }

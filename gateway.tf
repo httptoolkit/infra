@@ -25,10 +25,15 @@ resource "helm_release" "cert_manager" {
   create_namespace = true
   wait             = true
 
-  set = [{
-    name  = "installCRDs"
-    value = "true"
-  }]
+  values = [
+    yamlencode({
+      installCRDs = true
+
+      extraArgs = [
+        "--enable-gateway-api"
+      ]
+    })
+  ]
 }
 
 resource "kubectl_manifest" "letsencrypt_prod" {
@@ -108,6 +113,28 @@ resource "kubectl_manifest" "cert_httptoolkit_tech" {
     kubectl_manifest.letsencrypt_prod,
     kubectl_manifest.main_gateway
   ]
+}
+
+# Dummy cert (copying from fixed .it cert for now) to bootstrap
+# httptoolkit.tech and get the gateway running.
+resource "kubernetes_secret_v1" "cert_httptoolkit_tech_bootstrap" {
+  metadata {
+    name      = "cert-httptoolkit-tech"
+    namespace = "envoy-gateway-system"
+  }
+
+  type = "kubernetes.io/tls"
+
+  data = {
+    "tls.crt" = var.httptoolk_it_tls_cert
+    "tls.key" = var.httptoolk_it_tls_key
+  }
+
+  lifecycle {
+    ignore_changes = [data, metadata]
+  }
+
+  depends_on = [helm_release.envoy_gateway]
 }
 
 # Set up the Gateway itself:

@@ -26,3 +26,15 @@ variable "zone" {
   default     = "fr-par-1"
   description = "Default zone for zonal resources"
 }
+
+variable "httptoolk_it_tls_cert" {
+  description = "PEM-encoded TLS certificate for *.e.httptoolk.it"
+  type        = string
+  sensitive   = true
+}
+
+variable "httptoolk_it_tls_key" {
+  description = "PEM-encoded TLS private key for *.e.httptoolk.it"
+  type        = string
+  sensitive   = true
+}

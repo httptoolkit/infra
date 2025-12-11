@@ -1,4 +1,4 @@
-# Fetch, split & install the Gateway API CRDs
+# Install the Gateway API CRDs (n.b. standard, not experimental)
 data "http" "gateway_api_crds" {
   url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml"
 }
@@ -67,6 +67,49 @@ resource "kubectl_manifest" "letsencrypt_prod" {
   depends_on = [helm_release.cert_manager]
 }
 
+# Set up our two certificates
+resource "kubernetes_secret_v1" "cert_httptoolk_it" {
+  metadata {
+    name      = "cert-httptoolk-it"
+    namespace = "envoy-gateway-system"
+  }
+
+  type = "kubernetes.io/tls"
+
+  data = {
+    "tls.crt" = var.httptoolk_it_tls_cert
+    "tls.key" = var.httptoolk_it_tls_key
+  }
+
+  depends_on = [helm_release.envoy_gateway]
+}
+
+resource "kubectl_manifest" "cert_httptoolkit_tech" {
+  yaml_body = yamlencode({
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "cert-httptoolkit-tech"
+      namespace = "envoy-gateway-system"
+    }
+    spec = {
+      secretName = "cert-httptoolkit-tech"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      dnsNames = [
+        "public-endpoint.httptoolkit.tech",
+      ]
+    }
+  })
+
+  depends_on = [
+    kubectl_manifest.letsencrypt_prod,
+    kubectl_manifest.main_gateway
+  ]
+}
+
 # Set up the Gateway itself:
 resource "helm_release" "envoy_gateway" {
   name             = "envoy-gateway"
@@ -106,9 +149,6 @@ resource "kubectl_manifest" "main_gateway" {
     metadata = {
       name      = "main-gateway"
       namespace = "envoy-gateway-system"
-      annotations = {
-        "cert-manager.io/cluster-issuer" = "letsencrypt-prod"
-      }
     }
     spec = {
       gatewayClassName = "envoy-gateway"
@@ -123,7 +163,7 @@ resource "kubectl_manifest" "main_gateway" {
           name          = "https-httptoolk-it"
           port          = 443
           protocol      = "HTTPS"
-          hostname      = "*.httptoolk.it"
+          hostname      = "*.e.httptoolk.it"
           allowedRoutes = { namespaces = { from = "All" } }
           tls = {
             mode            = "Terminate"
@@ -147,9 +187,7 @@ resource "kubectl_manifest" "main_gateway" {
           "service.beta.kubernetes.io/scw-loadbalancer-type"         = "LB-S"
           "service.beta.kubernetes.io/scw-loadbalancer-zone"         = var.zone
           "service.beta.kubernetes.io/scw-loadbalancer-use-hostname" = "true"
-
-          "service.beta.kubernetes.io/scw-loadbalancer-name"  = "httptoolkit-gateway"
-          "service.beta.kubernetes.io/scw-loadbalancer-ip-id" = scaleway_lb_ip.gateway_ip.id
+          "service.beta.kubernetes.io/scw-loadbalancer-ip-id"        = scaleway_lb_ip.gateway_ip.id
         }
       }
     }

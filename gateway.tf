@@ -238,7 +238,7 @@ resource "kubectl_manifest" "main_gateway" {
 }
 
 # Force HTTP/2 for all endpoint admin TLS connections:
-resource "kubectl_manifest" "force_h2_policy" {
+resource "kubectl_manifest" "force_h2_endpoint_admin_policy" {
   yaml_body = yamlencode({
     apiVersion = "gateway.envoyproxy.io/v1alpha1"
     kind       = "ClientTrafficPolicy"
@@ -255,6 +255,29 @@ resource "kubectl_manifest" "force_h2_policy" {
       }
       tls = {
         alpnProtocols = ["h2"]
+      }
+    }
+  })
+}
+
+# Force HTTP/2 for all endpoint admin TLS connections:
+resource "kubectl_manifest" "allow_h2_public_endpoint_policy" {
+  yaml_body = yamlencode({
+    apiVersion = "gateway.envoyproxy.io/v1alpha1"
+    kind       = "ClientTrafficPolicy"
+    metadata = {
+      name      = "allow-h2-public-endpoint"
+      namespace = "envoy-gateway-system"
+    }
+    spec = {
+      targetRef = {
+        group       = "gateway.networking.k8s.io"
+        kind        = "Gateway"
+        name        = "main-gateway"
+        sectionName = "tls-httptoolk-it"
+      }
+      tls = {
+        alpnProtocols = ["http/1.1", "h2"]
       }
     }
   })

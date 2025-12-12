@@ -182,17 +182,34 @@ resource "kubectl_manifest" "main_gateway" {
           protocol      = "HTTP"
           allowedRoutes = { namespaces = { from = "All" } }
         },
+        // TLS termination without proxying for *.e.httptoolk.it:
         {
-          name          = "https-httptoolk-it"
-          port          = 443
-          protocol      = "HTTPS"
-          hostname      = "*.e.httptoolk.it"
-          allowedRoutes = { namespaces = { from = "All" } }
+          name     = "tls-httptoolk-it"
+          port     = 443
+          protocol = "TLS"
+          hostname = "*.e.httptoolk.it"
+          allowedRoutes = {
+            namespaces = { from = "All" }
+            kinds      = [{ kind = "TCPRoute" }]
+          }
           tls = {
             mode            = "Terminate"
             certificateRefs = [{ kind = "Secret", name = "cert-httptoolk-it" }]
           }
         },
+        // TLS termination but then raw TCP passthrough for the endpoint admin:
+        {
+          name          = "tls-endpoint-admin-httptoolkit-tech"
+          port          = 443
+          protocol      = "TLS"
+          hostname      = "public-endpoint.httptoolkit.tech"
+          allowedRoutes = { namespaces = { from = "All" } }
+          tls = {
+            mode            = "Terminate"
+            certificateRefs = [{ kind = "Secret", name = "cert-httptoolkit-tech" }]
+          }
+        },
+        // Normal HTTPS for all other httptoolkit.tech sites:
         {
           name          = "https-httptoolkit-tech"
           port          = 443
@@ -218,4 +235,27 @@ resource "kubectl_manifest" "main_gateway" {
     helm_release.envoy_gateway,
     kubectl_manifest.letsencrypt_prod
   ]
+}
+
+# Force HTTP/2 for all endpoint admin TLS connections:
+resource "kubectl_manifest" "force_h2_policy" {
+  yaml_body = yamlencode({
+    apiVersion = "gateway.envoyproxy.io/v1alpha1"
+    kind       = "ClientTrafficPolicy"
+    metadata = {
+      name      = "force-h2-endpoint-admin"
+      namespace = "envoy-gateway-system"
+    }
+    spec = {
+      targetRef = {
+        group       = "gateway.networking.k8s.io"
+        kind        = "Gateway"
+        name        = "main-gateway"
+        sectionName = "tls-endpoint-admin-httptoolkit-tech"
+      }
+      tls = {
+        alpnProtocols = ["h2"]
+      }
+    }
+  })
 }

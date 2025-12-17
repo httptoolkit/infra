@@ -27,6 +27,12 @@ variable "zone" {
   description = "Default zone for zonal resources"
 }
 
+variable "failover_zone" {
+  type        = string
+  default     = "fr-par-2"
+  description = "Failover zone for zonal resources"
+}
+
 variable "httptoolk_it_tls_cert" {
   description = "PEM-encoded TLS certificate for *.e.httptoolk.it"
   type        = string

@@ -37,6 +37,19 @@ resource "scaleway_k8s_pool" "main" {
   tags        = ["htk", "production"]
 }
 
+resource "scaleway_k8s_pool" "failover" {
+  cluster_id  = scaleway_k8s_cluster.main.id
+  name        = "htk-production-failover-pool"
+  node_type   = "PLAY2-NANO"
+  region      = var.region
+  zone        = var.failover_zone
+  size        = 0
+  min_size    = 0
+  max_size    = 3
+  autoscaling = true
+  tags        = ["htk", "production", "failover"]
+}
+
 module "public_endpoint" {
   source = "./modules/k8s-project"
   name   = "public-endpoint"

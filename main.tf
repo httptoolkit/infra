@@ -22,9 +22,14 @@ resource "scaleway_k8s_cluster" "main" {
     maintenance_window_start_hour = 10
     maintenance_window_day        = "tuesday"
   }
+
+  autoscaler_config {
+    expander                 = "priority"
+    scale_down_unneeded_time = "10m"
+  }
 }
 
-resource "scaleway_k8s_pool" "main" {
+resource "scaleway_k8s_pool" "primary" {
   cluster_id  = scaleway_k8s_cluster.main.id
   name        = "htk-production-pool"
   node_type   = "PLAY2-NANO"
@@ -48,6 +53,25 @@ resource "scaleway_k8s_pool" "failover" {
   max_size    = 3
   autoscaling = true
   tags        = ["htk", "production", "failover"]
+}
+
+# Prefer to deploy nodes in the primary pool, whenever possible:
+resource "kubernetes_config_map_v1" "autoscaler_priority" {
+  metadata {
+    name      = "cluster-autoscaler-priority-expander"
+    namespace = "kube-system"
+  }
+
+  data = {
+    "priorities" = <<-EOT
+      50:
+        - .*primary.*
+      10:
+        - .*failover.*
+    EOT
+  }
+
+  depends_on = [scaleway_k8s_pool.primary]
 }
 
 module "public_endpoint" {

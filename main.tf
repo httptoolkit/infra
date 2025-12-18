@@ -4,6 +4,10 @@ resource "scaleway_vpc_private_network" "main" {
 
   project_id = var.project_id
   region     = var.region
+
+  ipv4_subnet {
+    subnet = "172.16.4.0/22"
+  }
 }
 
 resource "scaleway_k8s_cluster" "main" {

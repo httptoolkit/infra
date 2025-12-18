@@ -21,13 +21,13 @@ resource "kubernetes_service_account_v1" "deployer" {
   }
 }
 
+# Namespace rule: all permissions, but only in this namespace
 resource "kubernetes_role_v1" "deployer" {
   metadata {
     name      = "gh-actions-deployer-role"
     namespace = kubernetes_namespace_v1.this.metadata[0].name
   }
 
-  # All permissions, but only in this namespace
   rule {
     api_groups = ["*"]
     resources  = ["*"]
@@ -45,6 +45,25 @@ resource "kubernetes_role_binding_v1" "deployer" {
     kind      = "Role"
     name      = kubernetes_role_v1.deployer.metadata[0].name
   }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account_v1.deployer.metadata[0].name
+    namespace = kubernetes_namespace_v1.this.metadata[0].name
+  }
+}
+
+# Cluster rule: read-only perms on CRDs, required for route deploys:
+resource "kubernetes_cluster_role_binding_v1" "deployer_crd_reader" {
+  metadata {
+    name = "${var.name}-gh-actions-deployer-crd-cluster-binding"
+  }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = var.crd_reader_role_name
+  }
+
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account_v1.deployer.metadata[0].name

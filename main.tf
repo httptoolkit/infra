@@ -74,11 +74,25 @@ resource "kubernetes_config_map_v1" "autoscaler_priority" {
   depends_on = [scaleway_k8s_pool.primary]
 }
 
+# All projects need read-only access to CRDs for route deploys:
+resource "kubernetes_cluster_role_v1" "crd_reader" {
+  metadata {
+    name = "crd-reader-role"
+  }
+
+  rule {
+    api_groups = ["apiextensions.k8s.io"]
+    resources  = ["customresourcedefinitions"]
+    verbs      = ["get", "list"]
+  }
+}
+
 ### ---
 
 module "public_endpoint" {
-  source = "./modules/k8s-project"
-  name   = "public-endpoint"
+  source               = "./modules/k8s-project"
+  name                 = "public-endpoint"
+  crd_reader_role_name = kubernetes_cluster_role_v1.crd_reader.metadata[0].name
 }
 
 output "public_endpoint_deploy_token" {
@@ -87,8 +101,9 @@ output "public_endpoint_deploy_token" {
 }
 
 module "accounts_api" {
-  source = "./modules/k8s-project"
-  name   = "accounts-api"
+  source               = "./modules/k8s-project"
+  name                 = "accounts-api"
+  crd_reader_role_name = kubernetes_cluster_role_v1.crd_reader.metadata[0].name
 }
 
 output "accounts_api_deploy_token" {

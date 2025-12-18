@@ -34,25 +34,25 @@ resource "scaleway_k8s_pool" "primary" {
   name        = "htk-production-pool"
   node_type   = "PLAY2-NANO"
   region      = var.region
-  zone        = var.zone
+  zone        = var.primary_zone
   size        = 1
   min_size    = 1
   max_size    = 3
   autoscaling = true
-  tags        = ["htk", "production"]
+  tags        = ["htk", "production", "primary"]
 }
 
-resource "scaleway_k8s_pool" "failover" {
+resource "scaleway_k8s_pool" "secondary" {
   cluster_id  = scaleway_k8s_cluster.main.id
   name        = "htk-production-failover-pool"
   node_type   = "PLAY2-NANO"
   region      = var.region
-  zone        = var.failover_zone
+  zone        = var.secondary_zone
   size        = 0
   min_size    = 0
   max_size    = 3
   autoscaling = true
-  tags        = ["htk", "production", "failover"]
+  tags        = ["htk", "production", "secondary"]
 }
 
 # Prefer to deploy nodes in the primary pool, whenever possible:
@@ -67,7 +67,7 @@ resource "kubernetes_config_map_v1" "autoscaler_priority" {
       50:
         - .*primary.*
       10:
-        - .*failover.*
+        - .*secondary.*
     EOT
   }
 

@@ -21,16 +21,16 @@ variable "region" {
   description = "Default region for resources"
 }
 
-variable "zone" {
+variable "primary_zone" {
   type        = string
   default     = "fr-par-1"
   description = "Default zone for zonal resources"
 }
 
-variable "failover_zone" {
+variable "secondary_zone" {
   type        = string
   default     = "fr-par-2"
-  description = "Failover zone for zonal resources"
+  description = "Secondary/failover zone for zonal resources"
 }
 
 variable "httptoolk_it_tls_cert" {

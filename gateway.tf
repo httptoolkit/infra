@@ -56,8 +56,13 @@ resource "kubectl_manifest" "letsencrypt_prod" {
               gatewayHTTPRoute = {
                 parentRefs = [
                   {
-                    name      = "main-gateway"
-                    namespace = "envoy-gateway-system"
+                    name      = "primary-gateway"
+                    namespace = "gateway"
+                    kind      = "Gateway"
+                  },
+                  {
+                    name      = "secondary-gateway"
+                    namespace = "gateway"
                     kind      = "Gateway"
                   }
                 ]
@@ -76,7 +81,7 @@ resource "kubectl_manifest" "letsencrypt_prod" {
 resource "kubernetes_secret_v1" "cert_httptoolk_it" {
   metadata {
     name      = "cert-httptoolk-it"
-    namespace = "envoy-gateway-system"
+    namespace = "gateway"
   }
 
   type = "kubernetes.io/tls"
@@ -95,7 +100,7 @@ resource "kubectl_manifest" "cert_httptoolkit_tech" {
     kind       = "Certificate"
     metadata = {
       name      = "cert-httptoolkit-tech"
-      namespace = "envoy-gateway-system"
+      namespace = "gateway"
     }
     spec = {
       secretName = "cert-httptoolkit-tech"
@@ -114,7 +119,7 @@ resource "kubectl_manifest" "cert_httptoolkit_tech" {
 
   depends_on = [
     kubectl_manifest.letsencrypt_prod,
-    kubectl_manifest.main_gateway
+    kubectl_manifest.gateways
   ]
 }
 
@@ -123,7 +128,7 @@ resource "kubectl_manifest" "cert_httptoolkit_tech" {
 resource "kubernetes_secret_v1" "cert_httptoolkit_tech_bootstrap" {
   metadata {
     name      = "cert-httptoolkit-tech"
-    namespace = "envoy-gateway-system"
+    namespace = "gateway"
   }
 
   type = "kubernetes.io/tls"
@@ -136,17 +141,15 @@ resource "kubernetes_secret_v1" "cert_httptoolkit_tech_bootstrap" {
   lifecycle {
     ignore_changes = [data, metadata]
   }
-
-  depends_on = [helm_release.envoy_gateway]
 }
 
-# Set up the Gateway itself:
+# Set up the gateways themselves:
 resource "helm_release" "envoy_gateway" {
   name             = "envoy-gateway"
   repository       = "oci://docker.io/envoyproxy"
   chart            = "gateway-helm"
   version          = "v1.6.1"
-  namespace        = "envoy-gateway-system"
+  namespace        = "gateway"
   create_namespace = true
   wait             = true
 
@@ -168,67 +171,78 @@ resource "kubectl_manifest" "gateway_class" {
   depends_on = [helm_release.envoy_gateway]
 }
 
-resource "kubectl_manifest" "main_gateway" {
+locals {
+  gateway_topology = {
+    "primary-gateway"   = var.primary_zone
+    "secondary-gateway" = var.secondary_zone
+  }
+
+  gateway_listeners = [
+    {
+      name          = "http"
+      port          = 80
+      protocol      = "HTTP"
+      allowedRoutes = { namespaces = { from = "All" } }
+    },
+    // TLS termination without proxying for *.e.httptoolk.it:
+    {
+      name     = "tls-httptoolk-it"
+      port     = 443
+      protocol = "TLS"
+      hostname = "*.e.httptoolk.it"
+      allowedRoutes = {
+        namespaces = { from = "All" }
+        kinds      = [{ kind = "TCPRoute" }]
+      }
+      tls = {
+        mode            = "Terminate"
+        certificateRefs = [{ kind = "Secret", name = "cert-httptoolk-it" }]
+      }
+    },
+    // TLS termination but then raw TCP passthrough for the endpoint admin:
+    {
+      name          = "tls-endpoint-admin-httptoolkit-tech"
+      port          = 443
+      protocol      = "TLS"
+      hostname      = "public-endpoint.httptoolkit.tech"
+      allowedRoutes = { namespaces = { from = "All" } }
+      tls = {
+        mode            = "Terminate"
+        certificateRefs = [{ kind = "Secret", name = "cert-httptoolkit-tech" }]
+      }
+    },
+    // Normal HTTPS for all other httptoolkit.tech sites:
+    {
+      name          = "https-httptoolkit-tech"
+      port          = 443
+      protocol      = "HTTPS"
+      hostname      = "*.httptoolkit.tech"
+      allowedRoutes = { namespaces = { from = "All" } }
+      tls = {
+        mode            = "Terminate"
+        certificateRefs = [{ kind = "Secret", name = "cert-httptoolkit-tech" }]
+      }
+    }
+  ]
+}
+
+resource "kubectl_manifest" "gateways" {
+  for_each = local.gateway_topology
+
   yaml_body = yamlencode({
     apiVersion = "gateway.networking.k8s.io/v1"
     kind       = "Gateway"
     metadata = {
-      name      = "main-gateway"
-      namespace = "envoy-gateway-system"
+      name      = each.key
+      namespace = "gateway"
     }
     spec = {
       gatewayClassName = "envoy-gateway"
-      listeners = [
-        {
-          name          = "http"
-          port          = 80
-          protocol      = "HTTP"
-          allowedRoutes = { namespaces = { from = "All" } }
-        },
-        // TLS termination without proxying for *.e.httptoolk.it:
-        {
-          name     = "tls-httptoolk-it"
-          port     = 443
-          protocol = "TLS"
-          hostname = "*.e.httptoolk.it"
-          allowedRoutes = {
-            namespaces = { from = "All" }
-            kinds      = [{ kind = "TCPRoute" }]
-          }
-          tls = {
-            mode            = "Terminate"
-            certificateRefs = [{ kind = "Secret", name = "cert-httptoolk-it" }]
-          }
-        },
-        // TLS termination but then raw TCP passthrough for the endpoint admin:
-        {
-          name          = "tls-endpoint-admin-httptoolkit-tech"
-          port          = 443
-          protocol      = "TLS"
-          hostname      = "public-endpoint.httptoolkit.tech"
-          allowedRoutes = { namespaces = { from = "All" } }
-          tls = {
-            mode            = "Terminate"
-            certificateRefs = [{ kind = "Secret", name = "cert-httptoolkit-tech" }]
-          }
-        },
-        // Normal HTTPS for all other httptoolkit.tech sites:
-        {
-          name          = "https-httptoolkit-tech"
-          port          = 443
-          protocol      = "HTTPS"
-          hostname      = "*.httptoolkit.tech"
-          allowedRoutes = { namespaces = { from = "All" } }
-          tls = {
-            mode            = "Terminate"
-            certificateRefs = [{ kind = "Secret", name = "cert-httptoolkit-tech" }]
-          }
-        }
-      ]
+      listeners        = local.gateway_listeners
       infrastructure = {
         annotations = {
+          "service.beta.kubernetes.io/scw-loadbalancer-zone"         = each.value
           "service.beta.kubernetes.io/scw-loadbalancer-type"         = "LB-S"
-          "service.beta.kubernetes.io/scw-loadbalancer-zone"         = var.zone
           "service.beta.kubernetes.io/scw-loadbalancer-use-hostname" = "true"
         }
       }
@@ -242,18 +256,20 @@ resource "kubectl_manifest" "main_gateway" {
 
 # Force HTTP/2 for all endpoint admin TLS connections:
 resource "kubectl_manifest" "force_h2_endpoint_admin_policy" {
+  for_each = local.gateway_topology
+
   yaml_body = yamlencode({
     apiVersion = "gateway.envoyproxy.io/v1alpha1"
     kind       = "ClientTrafficPolicy"
     metadata = {
-      name      = "force-h2-endpoint-admin"
-      namespace = "envoy-gateway-system"
+      name      = "force-h2-endpoint-admin-${each.key}"
+      namespace = "gateway"
     }
     spec = {
       targetRef = {
         group       = "gateway.networking.k8s.io"
         kind        = "Gateway"
-        name        = "main-gateway"
+        name        = each.key
         sectionName = "tls-endpoint-admin-httptoolkit-tech"
       }
       tls = {
@@ -261,22 +277,25 @@ resource "kubectl_manifest" "force_h2_endpoint_admin_policy" {
       }
     }
   })
+  depends_on = [kubectl_manifest.gateways]
 }
 
 # Force HTTP/2 for all endpoint admin TLS connections:
 resource "kubectl_manifest" "allow_h2_public_endpoint_policy" {
+  for_each = local.gateway_topology
+
   yaml_body = yamlencode({
     apiVersion = "gateway.envoyproxy.io/v1alpha1"
     kind       = "ClientTrafficPolicy"
     metadata = {
-      name      = "allow-h2-public-endpoint"
-      namespace = "envoy-gateway-system"
+      name      = "allow-h2-public-endpoint-${each.key}"
+      namespace = "gateway"
     }
     spec = {
       targetRef = {
         group       = "gateway.networking.k8s.io"
         kind        = "Gateway"
-        name        = "main-gateway"
+        name        = each.key
         sectionName = "tls-httptoolk-it"
       }
       tls = {
@@ -284,4 +303,5 @@ resource "kubectl_manifest" "allow_h2_public_endpoint_policy" {
       }
     }
   })
+  depends_on = [kubectl_manifest.gateways]
 }

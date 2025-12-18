@@ -247,9 +247,10 @@ resource "kubectl_manifest" "gateways" {
       listeners        = local.gateway_listeners
       infrastructure = {
         annotations = {
-          "service.beta.kubernetes.io/scw-loadbalancer-zone"         = each.value
-          "service.beta.kubernetes.io/scw-loadbalancer-type"         = "LB-S"
-          "service.beta.kubernetes.io/scw-loadbalancer-use-hostname" = "true"
+          "service.beta.kubernetes.io/scw-loadbalancer-zone"              = each.value
+          "service.beta.kubernetes.io/scw-loadbalancer-type"              = "LB-S"
+          "service.beta.kubernetes.io/scw-loadbalancer-use-hostname"      = "true"
+          "service.beta.kubernetes.io/scw-loadbalancer-proxy-protocol-v2" = "true"
         }
       }
     }
@@ -309,5 +310,29 @@ resource "kubectl_manifest" "allow_h2_public_endpoint_policy" {
       }
     }
   })
+  depends_on = [kubectl_manifest.gateways]
+}
+
+# Enable proxy protocol parsing, to handle proxy info from Scaleway LB:
+resource "kubectl_manifest" "proxy_protocol_policy" {
+  for_each = local.gateway_topology
+
+  yaml_body = yamlencode({
+    apiVersion = "gateway.envoyproxy.io/v1alpha1"
+    kind       = "ClientTrafficPolicy"
+    metadata = {
+      name      = "enable-proxy-protocol-${each.key}"
+      namespace = "gateway"
+    }
+    spec = {
+      targetRef = {
+        group = "gateway.networking.k8s.io"
+        kind  = "Gateway"
+        name  = each.key
+      }
+      enableProxyProtocol = true
+    }
+  })
+
   depends_on = [kubectl_manifest.gateways]
 }

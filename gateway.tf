@@ -103,8 +103,11 @@ resource "kubectl_manifest" "cert_httptoolkit_tech" {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
       }
+      commonName = "httptoolkit.tech"
       dnsNames = [
+        "httptoolkit.tech",
         "public-endpoint.httptoolkit.tech",
+        "accounts-api.httptoolkit.tech"
       ]
     }
   })

@@ -74,15 +74,29 @@ resource "kubernetes_config_map_v1" "autoscaler_priority" {
   depends_on = [scaleway_k8s_pool.primary]
 }
 
+### ---
+
 module "public_endpoint" {
   source = "./modules/k8s-project"
   name   = "public-endpoint"
 }
 
-output "public_endpoint_server_token" {
+output "public_endpoint_deploy_token" {
   value     = module.public_endpoint.deployer_token
   sensitive = true
 }
+
+module "accounts_api" {
+  source = "./modules/k8s-project"
+  name   = "accounts-api"
+}
+
+output "accounts_api_deploy_token" {
+  value     = module.accounts_api.deployer_token
+  sensitive = true
+}
+
+### ---
 
 output "kubeconfig" {
   value     = scaleway_k8s_cluster.main.kubeconfig[0].config_file

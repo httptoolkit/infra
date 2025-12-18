@@ -45,3 +45,10 @@ provider "kubernetes" {
   token                  = scaleway_k8s_cluster.main.kubeconfig[0].token
   cluster_ca_certificate = base64decode(scaleway_k8s_cluster.main.kubeconfig[0].cluster_ca_certificate)
 }
+
+provider "kubectl" {
+  host                   = scaleway_k8s_cluster.main.kubeconfig[0].host
+  token                  = scaleway_k8s_cluster.main.kubeconfig[0].token
+  cluster_ca_certificate = base64decode(scaleway_k8s_cluster.main.kubeconfig[0].cluster_ca_certificate)
+  load_config_file       = false
+}

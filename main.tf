@@ -48,7 +48,7 @@ resource "scaleway_k8s_pool" "secondary" {
   node_type   = "PLAY2-NANO"
   region      = var.region
   zone        = var.secondary_zone
-  size        = 0
+  size        = 1
   min_size    = 0
   max_size    = 3
   autoscaling = true

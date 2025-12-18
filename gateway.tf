@@ -1,3 +1,9 @@
+resource "kubernetes_namespace_v1" "this" {
+  metadata {
+    name = "gateway"
+  }
+}
+
 # Install the Gateway API CRDs (n.b. standard, not experimental)
 data "http" "gateway_api_crds" {
   url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml"
@@ -45,7 +51,7 @@ resource "kubectl_manifest" "letsencrypt_prod" {
     }
     spec = {
       acme = {
-        email  = "admin@httptoolkit.com"
+        email  = "certificate-admin@httptoolkit.com"
         server = "https://acme-v02.api.letsencrypt.org/directory"
         privateKeySecretRef = {
           name = "letsencrypt-prod-account-key"

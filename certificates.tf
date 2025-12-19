@@ -54,12 +54,6 @@ resource "kubectl_manifest" "letsencrypt_prod" {
                 }
               }
             }
-            selector = {
-              dnsNames = [
-                "httptoolkit.tech",
-                "*.httptoolkit.tech"
-              ]
-            }
           }
         ]
       }
@@ -70,23 +64,6 @@ resource "kubectl_manifest" "letsencrypt_prod" {
     helm_release.cert_manager,
     helm_release.cert_manager_scaleway_webhook
   ]
-}
-
-# Manually set up the TLS cert for *.e.httptoolk.it, for now:
-resource "kubernetes_secret_v1" "cert_httptoolk_it" {
-  metadata {
-    name      = "cert-httptoolk-it"
-    namespace = "certificates"
-  }
-
-  type = "kubernetes.io/tls"
-
-  data = {
-    "tls.crt" = var.httptoolk_it_tls_cert
-    "tls.key" = var.httptoolk_it_tls_key
-  }
-
-  depends_on = [helm_release.envoy_gateway]
 }
 
 # We create a new app & API key for cert manager to automate our DNS:
@@ -154,9 +131,31 @@ resource "kubectl_manifest" "cert_wildcard_httptoolkit_tech" {
       ]
     }
   })
+  depends_on = [kubectl_manifest.letsencrypt_prod]
+}
 
-  depends_on = [
-    kubectl_manifest.letsencrypt_prod,
-    kubectl_manifest.gateways
-  ]
+
+resource "kubectl_manifest" "cert_wildcard_httptoolk_it" {
+  yaml_body = yamlencode({
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "cert-wildcard-httptoolk-it"
+      namespace = "certificates"
+    }
+    spec = {
+      secretName = "cert-wildcard-httptoolk-it"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      commonName = "httptoolk.it"
+      dnsNames = [
+        "httptoolk.it",
+        "*.httptoolk.it",
+        "*.e.httptoolk.it"
+      ]
+    }
+  })
+  depends_on = [kubectl_manifest.letsencrypt_prod]
 }

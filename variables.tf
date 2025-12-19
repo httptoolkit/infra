@@ -32,15 +32,3 @@ variable "secondary_zone" {
   default     = "fr-par-2"
   description = "Secondary/failover zone for zonal resources"
 }
-
-variable "httptoolk_it_tls_cert" {
-  description = "PEM-encoded TLS certificate for *.e.httptoolk.it"
-  type        = string
-  sensitive   = true
-}
-
-variable "httptoolk_it_tls_key" {
-  description = "PEM-encoded TLS private key for *.e.httptoolk.it"
-  type        = string
-  sensitive   = true
-}

@@ -74,7 +74,7 @@ locals {
       }
       tls = {
         mode            = "Terminate"
-        certificateRefs = [{ kind = "Secret", namespace = "certificates", name = "cert-httptoolk-it" }]
+        certificateRefs = [{ kind = "Secret", namespace = "certificates", name = "cert-wildcard-httptoolk-it" }]
       }
     },
     // TLS termination but then raw TCP passthrough for the endpoint admin:

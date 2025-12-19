@@ -159,3 +159,26 @@ resource "kubectl_manifest" "cert_wildcard_httptoolk_it" {
   })
   depends_on = [kubectl_manifest.letsencrypt_prod]
 }
+
+# Allow access to certs from the Gateway namespace:
+resource "kubectl_manifest" "cert_reference_grant" {
+  yaml_body = yamlencode({
+    apiVersion = "gateway.networking.k8s.io/v1beta1"
+    kind       = "ReferenceGrant"
+    metadata = {
+      name      = "allow-gateway-to-certs"
+      namespace = "certificates"
+    }
+    spec = {
+      from = [{
+        group     = "gateway.networking.k8s.io"
+        kind      = "Gateway"
+        namespace = "gateway"
+      }]
+      to = [{
+        group = ""
+        kind  = "Secret"
+      }]
+    }
+  })
+}

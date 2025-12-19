@@ -115,6 +115,17 @@ output "accounts_api_deploy_token" {
   sensitive = true
 }
 
+module "anonymizing-reverse-proxy" {
+  source               = "./modules/k8s-project"
+  name                 = "anonymizing-reverse-proxy"
+  crd_reader_role_name = kubernetes_cluster_role_v1.crd_reader.metadata[0].name
+}
+
+output "anonymizing_reverse_proxy_deploy_token" {
+  value     = module.anonymizing-reverse-proxy.deployer_token
+  sensitive = true
+}
+
 ### ---
 
 output "kubeconfig" {

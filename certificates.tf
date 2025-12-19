@@ -110,6 +110,27 @@ resource "helm_release" "cert_manager_scaleway_webhook" {
   ]
 }
 
+resource "kubectl_manifest" "cert_httptoolkit_com" {
+  yaml_body = yamlencode({
+    apiVersion = "cert-manager.io/v1"
+    kind       = "Certificate"
+    metadata = {
+      name      = "cert-httptoolkit-com"
+      namespace = "certificates"
+    }
+    spec = {
+      secretName = "cert-httptoolkit-com"
+      issuerRef = {
+        name = "letsencrypt-prod"
+        kind = "ClusterIssuer"
+      }
+      commonName = "httptoolkit.com"
+      dnsNames   = ["httptoolkit.com"]
+    }
+  })
+  depends_on = [kubectl_manifest.letsencrypt_prod]
+}
+
 resource "kubectl_manifest" "cert_wildcard_httptoolkit_tech" {
   yaml_body = yamlencode({
     apiVersion = "cert-manager.io/v1"
@@ -133,7 +154,6 @@ resource "kubectl_manifest" "cert_wildcard_httptoolkit_tech" {
   })
   depends_on = [kubectl_manifest.letsencrypt_prod]
 }
-
 
 resource "kubectl_manifest" "cert_wildcard_httptoolk_it" {
   yaml_body = yamlencode({

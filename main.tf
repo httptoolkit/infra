@@ -91,42 +91,28 @@ resource "kubernetes_cluster_role_v1" "crd_reader" {
   }
 }
 
-### ---
+locals {
+  projects = toset([
+    "public-endpoint",
+    "accounts-api",
+    "anonymizing-reverse-proxy",
+    "httptoolkit-website"
+  ])
+}
 
-module "public_endpoint" {
+module "k8s_projects" {
+  for_each = local.projects
+
   source               = "./modules/k8s-project"
-  name                 = "public-endpoint"
+  name                 = each.key
   crd_reader_role_name = kubernetes_cluster_role_v1.crd_reader.metadata[0].name
 }
 
-output "public_endpoint_deploy_token" {
-  value     = module.public_endpoint.deployer_token
-  sensitive = true
+output "deploy_tokens" {
+  description = "Map of project names to their deployer tokens"
+  value       = { for p, mod in module.k8s_projects : p => mod.deployer_token }
+  sensitive   = true
 }
-
-module "accounts_api" {
-  source               = "./modules/k8s-project"
-  name                 = "accounts-api"
-  crd_reader_role_name = kubernetes_cluster_role_v1.crd_reader.metadata[0].name
-}
-
-output "accounts_api_deploy_token" {
-  value     = module.accounts_api.deployer_token
-  sensitive = true
-}
-
-module "anonymizing-reverse-proxy" {
-  source               = "./modules/k8s-project"
-  name                 = "anonymizing-reverse-proxy"
-  crd_reader_role_name = kubernetes_cluster_role_v1.crd_reader.metadata[0].name
-}
-
-output "anonymizing_reverse_proxy_deploy_token" {
-  value     = module.anonymizing-reverse-proxy.deployer_token
-  sensitive = true
-}
-
-### ---
 
 output "kubeconfig" {
   value     = scaleway_k8s_cluster.main.kubeconfig[0].config_file

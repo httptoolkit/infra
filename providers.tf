@@ -19,7 +19,11 @@ terraform {
     }
     kubectl = {
       source  = "gavinbunney/kubectl"
-      version = ">= 1.19.0"
+      version = "~> 1.19"
+    }
+    acme = {
+      source  = "vancluever/acme"
+      version = "~> 2.40"
     }
   }
 }
@@ -51,4 +55,8 @@ provider "kubectl" {
   token                  = scaleway_k8s_cluster.main.kubeconfig[0].token
   cluster_ca_certificate = base64decode(scaleway_k8s_cluster.main.kubeconfig[0].cluster_ca_certificate)
   load_config_file       = false
+}
+
+provider "acme" {
+  server_url = "https://acme-v02.api.letsencrypt.org/directory"
 }

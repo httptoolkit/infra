@@ -1,20 +1,6 @@
-# Dummy cert (copying from fixed .it cert for now) to bootstrap
-# httptoolkit.tech and get the gateway running.
-resource "kubernetes_secret_v1" "cert_httptoolkit_tech_bootstrap" {
+resource "kubernetes_namespace_v1" "certificates" {
   metadata {
-    name      = "cert-httptoolkit-tech"
-    namespace = "gateway"
-  }
-
-  type = "kubernetes.io/tls"
-
-  data = {
-    "tls.crt" = var.httptoolk_it_tls_cert
-    "tls.key" = var.httptoolk_it_tls_key
-  }
-
-  lifecycle {
-    ignore_changes = [data, metadata]
+    name = "certificates"
   }
 }
 
@@ -24,7 +10,7 @@ resource "helm_release" "cert_manager" {
   repository       = "oci://quay.io/jetstack/charts"
   chart            = "cert-manager"
   version          = "v1.19.2"
-  namespace        = "cert-manager"
+  namespace        = "certificates"
   create_namespace = true
   wait             = true
 
@@ -44,7 +30,8 @@ resource "kubectl_manifest" "letsencrypt_prod" {
     apiVersion = "cert-manager.io/v1"
     kind       = "ClusterIssuer"
     metadata = {
-      name = "letsencrypt-prod"
+      name      = "letsencrypt-prod"
+      namespace = "certificates"
     }
     spec = {
       acme = {
@@ -55,21 +42,23 @@ resource "kubectl_manifest" "letsencrypt_prod" {
         }
         solvers = [
           {
-            http01 = {
-              gatewayHTTPRoute = {
-                parentRefs = [
-                  {
-                    name      = "primary-gateway"
-                    namespace = "gateway"
-                    kind      = "Gateway"
-                  },
-                  {
-                    name      = "secondary-gateway"
-                    namespace = "gateway"
-                    kind      = "Gateway"
-                  }
-                ]
+            # All ACME is delegated via CNAMEs to acme-dns.httptoolkit.tech:
+            dns01 = {
+              cnameStrategy = "Follow"
+              webhook = {
+                groupName  = "acme.scaleway.com"
+                solverName = "scaleway"
+                config = {
+                  zone      = "acme-dns.httptoolkit.tech"
+                  projectId = var.project_id
+                }
               }
+            }
+            selector = {
+              dnsNames = [
+                "httptoolkit.tech",
+                "*.httptoolkit.tech"
+              ]
             }
           }
         ]
@@ -77,14 +66,17 @@ resource "kubectl_manifest" "letsencrypt_prod" {
     }
   })
 
-  depends_on = [helm_release.cert_manager]
+  depends_on = [
+    helm_release.cert_manager,
+    helm_release.cert_manager_scaleway_webhook
+  ]
 }
 
-# Set up our two certificates
+# Manually set up the TLS cert for *.e.httptoolk.it, for now:
 resource "kubernetes_secret_v1" "cert_httptoolk_it" {
   metadata {
     name      = "cert-httptoolk-it"
-    namespace = "gateway"
+    namespace = "certificates"
   }
 
   type = "kubernetes.io/tls"
@@ -97,16 +89,60 @@ resource "kubernetes_secret_v1" "cert_httptoolk_it" {
   depends_on = [helm_release.envoy_gateway]
 }
 
-resource "kubectl_manifest" "cert_httptoolkit_tech" {
+# We create a new app & API key for cert manager to automate our DNS:
+resource "scaleway_iam_application" "acme_dns_bot" {
+  name        = "acme-dns-bot"
+  description = "Automated bot for Cert Manager DNS challenges"
+}
+
+resource "scaleway_iam_policy" "acme_dns_bot_policy" {
+  name           = "acme-dns-bot-policy"
+  application_id = scaleway_iam_application.acme_dns_bot.id
+
+  rule {
+    project_ids          = [var.project_id]
+    permission_set_names = ["DomainsDNSFullAccess"]
+  }
+}
+
+resource "scaleway_iam_api_key" "acme_dns_key" {
+  application_id = scaleway_iam_application.acme_dns_bot.id
+  description    = "Key for Cert Manager ACME DNS challenges"
+}
+
+resource "helm_release" "cert_manager_scaleway_webhook" {
+  name       = "scaleway-webhook"
+  repository = "https://helm.scw.cloud"
+  chart      = "scaleway-certmanager-webhook"
+  namespace  = "certificates"
+
+  depends_on = [helm_release.cert_manager]
+
+  values = [
+    yamlencode({
+      certManager = {
+        namespace          = "certificates"
+        serviceAccountName = "cert-manager"
+      }
+
+      secret = {
+        accessKey = scaleway_iam_api_key.acme_dns_key.access_key
+        secretKey = scaleway_iam_api_key.acme_dns_key.secret_key
+      }
+    })
+  ]
+}
+
+resource "kubectl_manifest" "cert_wildcard_httptoolkit_tech" {
   yaml_body = yamlencode({
     apiVersion = "cert-manager.io/v1"
     kind       = "Certificate"
     metadata = {
-      name      = "cert-httptoolkit-tech"
-      namespace = "gateway"
+      name      = "cert-wildcard-httptoolkit-tech"
+      namespace = "certificates"
     }
     spec = {
-      secretName = "cert-httptoolkit-tech"
+      secretName = "cert-wildcard-httptoolkit-tech"
       issuerRef = {
         name = "letsencrypt-prod"
         kind = "ClusterIssuer"
@@ -114,8 +150,7 @@ resource "kubectl_manifest" "cert_httptoolkit_tech" {
       commonName = "httptoolkit.tech"
       dnsNames = [
         "httptoolkit.tech",
-        "public-endpoint.httptoolkit.tech",
-        "accounts-api.httptoolkit.tech"
+        "*.httptoolkit.tech"
       ]
     }
   })

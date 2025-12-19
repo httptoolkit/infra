@@ -3,7 +3,7 @@
 
 provider "registry.opentofu.org/gavinbunney/kubectl" {
   version     = "1.19.0"
-  constraints = ">= 1.19.0"
+  constraints = "~> 1.19"
   hashes = [
     "h1:9QkxPjp0x5FZFfJbE+B7hBOoads9gmdfj9aYu5N4Sfc=",
     "zh:1dec8766336ac5b00b3d8f62e3fff6390f5f60699c9299920fc9861a76f00c71",
@@ -95,5 +95,26 @@ provider "registry.opentofu.org/scaleway/scaleway" {
     "zh:e3eb4a39ba5e37b9b26eac107c7d954c9d5183d1cb84ffa1b3cf9a28b3519552",
     "zh:eb7f7b78abd4555d36275b16dd96bbbfe74fb9ee60a4611c03ce4ae732e0bf0a",
     "zh:f7cb5d958814e8ad71c1d9bd66ffc776d969d26c764c97cd01b0d1f8bd00e337",
+  ]
+}
+
+provider "registry.opentofu.org/vancluever/acme" {
+  version     = "2.40.0"
+  constraints = "~> 2.40"
+  hashes = [
+    "h1:g7Pl1Q7/AYYS4ALJGYj3czPiKfpCI0iUVEPl9BBsweY=",
+    "zh:0dc9bf6d257e3ef793842126f2fe14e19b4d6563269413637586eed20f04f9d7",
+    "zh:0eb9df65cd9fb1e701d57a91afe7f06820f28718bb3dfb67451518a9c28f381e",
+    "zh:1f8d16342d20775da74ccb16cd9944d69eb4c182b7b00a9f81043509110e6a62",
+    "zh:28b51fe66664d5b76df9410c8dd37253044ac07ad4976cca20b1470561c74ea5",
+    "zh:2c1ac85843c1d211fe7d2a78cf25a73e3a6659da13849475edc972ba9c399a24",
+    "zh:2d57c439b7859832e0bbc89c39ca73bfdaf89dc5201ccfdb12ef43f422400b8c",
+    "zh:6f87edf10a1ad6af1a96d37bd5da39cdfde620ad85d357673dee67b65cdd65ee",
+    "zh:986ad7e704998e3bd0c488fd24053ea7680bd461f7872d5b3742afd5f00e3a63",
+    "zh:badfea766042dfa2893ba5dae5cb7062da6dd983e94e8baea63edc1f71c268d1",
+    "zh:e45dba27e3485a604faf305fa93ccaf6b3cb4f492c88c06c92a5b9e1e86a4fd8",
+    "zh:e7e9390e808351049d91fe04e23bad4d3e1d8983414dca7ff3f4aa6ee7123ed8",
+    "zh:ea92142f74b43a7b51ca975f1504ccf68e26b5d9a31033ec83594ed16bd6fdb9",
+    "zh:eaf560869b581f1a99031ecfe8a87aa1fa41ec8c090eb9e0fdc7efb853069778",
   ]
 }

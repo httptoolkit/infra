@@ -1,9 +1,3 @@
-resource "kubernetes_namespace_v1" "this" {
-  metadata {
-    name = "gateway"
-  }
-}
-
 # Install the Gateway API CRDs (n.b. standard, not experimental)
 data "http" "gateway_api_crds" {
   url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml"
@@ -22,6 +16,12 @@ resource "kubectl_manifest" "gateway_api_crds" {
 }
 
 # Set up the gateways themselves:
+resource "kubernetes_namespace_v1" "gateway" {
+  metadata {
+    name = "gateway"
+  }
+}
+
 resource "helm_release" "envoy_gateway" {
   name             = "envoy-gateway"
   repository       = "oci://docker.io/envoyproxy"
@@ -74,7 +74,7 @@ locals {
       }
       tls = {
         mode            = "Terminate"
-        certificateRefs = [{ kind = "Secret", name = "cert-httptoolk-it" }]
+        certificateRefs = [{ kind = "Secret", namespace = "certificates", name = "cert-httptoolk-it" }]
       }
     },
     // TLS termination but then raw TCP passthrough for the endpoint admin:
@@ -86,7 +86,7 @@ locals {
       allowedRoutes = { namespaces = { from = "All" } }
       tls = {
         mode            = "Terminate"
-        certificateRefs = [{ kind = "Secret", name = "cert-httptoolkit-tech" }]
+        certificateRefs = [{ kind = "Secret", namespace = "certificates", name = "cert-wildcard-httptoolkit-tech" }]
       }
     },
     // Normal HTTPS for all other httptoolkit.tech sites:
@@ -98,7 +98,7 @@ locals {
       allowedRoutes = { namespaces = { from = "All" } }
       tls = {
         mode            = "Terminate"
-        certificateRefs = [{ kind = "Secret", name = "cert-httptoolkit-tech" }]
+        certificateRefs = [{ kind = "Secret", namespace = "certificates", name = "cert-wildcard-httptoolkit-tech" }]
       }
     }
   ]

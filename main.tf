@@ -96,7 +96,8 @@ locals {
     "public-endpoint",
     "accounts-api",
     "anonymizing-reverse-proxy",
-    "httptoolkit-website"
+    "httptoolkit-website",
+    "httptoolkit-ui"
   ])
 }
 

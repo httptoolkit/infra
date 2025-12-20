@@ -100,18 +100,6 @@ locals {
         mode            = "Terminate"
         certificateRefs = [{ kind = "Secret", namespace = "certificates", name = "cert-wildcard-httptoolkit-tech" }]
       }
-    },
-    // Normal HTTPS for httptoolkit.com
-    {
-      name          = "https-httptoolkit-com"
-      port          = 443
-      protocol      = "HTTPS"
-      hostname      = "httptoolkit.com"
-      allowedRoutes = { namespaces = { from = "All" } }
-      tls = {
-        mode            = "Terminate"
-        certificateRefs = [{ kind = "Secret", namespace = "certificates", name = "cert-httptoolkit-com" }]
-      }
     }
   ]
 }

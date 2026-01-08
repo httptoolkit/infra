@@ -51,20 +51,32 @@ resource "kubectl_manifest" "gateway_class" {
 
 resource "scaleway_lb_ip" "primary_ingress_ipv4" {
   zone = var.primary_zone
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "scaleway_lb_ip" "primary_ingress_ipv6" {
   zone    = var.primary_zone
   is_ipv6 = true
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "scaleway_lb_ip" "secondary_ingress_ipv4" {
   zone = var.secondary_zone
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "scaleway_lb_ip" "secondary_ingress_ipv6" {
   zone    = var.secondary_zone
   is_ipv6 = true
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 locals {

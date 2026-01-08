@@ -26,6 +26,10 @@ resource "scaleway_rdb_instance" "main" {
   }
 
   tags = ["htk", "production"]
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "scaleway_rdb_database" "accounts_db" {

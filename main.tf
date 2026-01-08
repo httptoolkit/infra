@@ -102,8 +102,7 @@ locals {
 }
 
 module "k8s_projects" {
-  for_each = local.projects
-
+  for_each             = local.projects
   source               = "./modules/k8s-project"
   name                 = each.key
   crd_reader_role_name = kubernetes_cluster_role_v1.crd_reader.metadata[0].name

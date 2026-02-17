@@ -13,7 +13,7 @@ resource "scaleway_rdb_instance" "main" {
   is_ha_cluster = true
 
   disable_backup            = false
-  backup_schedule_frequency = 6 # =4 times a day
+  backup_schedule_frequency = 24
   backup_schedule_retention = 365
 
   volume_type        = "sbs_5k"

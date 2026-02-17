@@ -13,6 +13,10 @@ resource "kubectl_manifest" "gateway_api_crds" {
 
   server_side_apply = true
   wait              = true
+
+  lifecycle {
+    ignore_changes = [yaml_body]
+  }
 }
 
 # Set up the gateways themselves:

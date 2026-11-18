@@ -44,6 +44,12 @@ resource "scaleway_k8s_pool" "primary" {
   max_size    = 3
   autoscaling = true
   tags        = ["htk", "production", "primary"]
+
+  # Pools are tiny, so create replacement nodes before draining old ones during upgrades:
+  upgrade_policy {
+    max_surge       = 1
+    max_unavailable = 1
+  }
 }
 
 resource "scaleway_k8s_pool" "secondary" {
@@ -57,6 +63,12 @@ resource "scaleway_k8s_pool" "secondary" {
   max_size    = 3
   autoscaling = true
   tags        = ["htk", "production", "secondary"]
+
+  # Pools are tiny, so create replacement nodes before draining old ones during upgrades:
+  upgrade_policy {
+    max_surge       = 1
+    max_unavailable = 1
+  }
 }
 
 # Prefer to deploy nodes in the primary pool, whenever possible:

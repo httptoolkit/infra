@@ -186,12 +186,12 @@ resource "kubectl_manifest" "force_h2_endpoint_admin_policy" {
       namespace = "gateway"
     }
     spec = {
-      targetRef = {
+      targetRefs = [{
         group       = "gateway.networking.k8s.io"
         kind        = "Gateway"
         name        = each.key
         sectionName = "tls-endpoint-admin-httptoolkit-tech"
-      }
+      }]
       tls = {
         alpnProtocols = ["h2"]
       }
@@ -212,12 +212,12 @@ resource "kubectl_manifest" "allow_h2_public_endpoint_policy" {
       namespace = "gateway"
     }
     spec = {
-      targetRef = {
+      targetRefs = [{
         group       = "gateway.networking.k8s.io"
         kind        = "Gateway"
         name        = each.key
         sectionName = "tls-httptoolk-it"
-      }
+      }]
       tls = {
         alpnProtocols = ["http/1.1", "h2"]
       }
@@ -238,12 +238,12 @@ resource "kubectl_manifest" "proxy_protocol_policy" {
       namespace = "gateway"
     }
     spec = {
-      targetRef = {
+      targetRefs = [{
         group = "gateway.networking.k8s.io"
         kind  = "Gateway"
         name  = each.key
-      }
-      enableProxyProtocol = true
+      }]
+      proxyProtocol = {}
     }
   })
 

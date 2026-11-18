@@ -17,10 +17,6 @@ resource "helm_release" "cert_manager" {
   values = [
     yamlencode({
       installCRDs = true
-
-      extraArgs = [
-        "--enable-gateway-api"
-      ]
     })
   ]
 }

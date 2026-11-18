@@ -12,7 +12,7 @@ resource "scaleway_vpc_private_network" "main" {
 
 resource "scaleway_k8s_cluster" "main" {
   name                        = "htk-production-cluster"
-  version                     = "1.34"
+  version                     = "1.35"
   cni                         = "cilium"
   delete_additional_resources = true
   private_network_id          = scaleway_vpc_private_network.main.id
@@ -30,6 +30,11 @@ resource "scaleway_k8s_cluster" "main" {
   autoscaler_config {
     expander                 = "priority"
     scale_down_unneeded_time = "10m"
+  }
+
+  # Version upgrades wait for every node in every pool to be replaced:
+  timeouts {
+    update = "60m"
   }
 }
 

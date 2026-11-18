@@ -9,7 +9,7 @@ resource "helm_release" "cert_manager" {
   name             = "cert-manager"
   repository       = "oci://quay.io/jetstack/charts"
   chart            = "cert-manager"
-  version          = "v1.20.5"
+  version          = "v1.21.3"
   namespace        = "certificates"
   create_namespace = true
   wait             = true

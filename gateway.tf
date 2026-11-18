@@ -81,10 +81,20 @@ resource "helm_release" "envoy_gateway" {
   name             = "envoy-gateway"
   repository       = "oci://docker.io/envoyproxy"
   chart            = "gateway-helm"
-  version          = "v1.6.1"
+  version          = local.envoy_gateway_version
   namespace        = "gateway"
   create_namespace = true
   wait             = true
+
+  # All CRDs & the Gateway API safe-upgrades policy are managed separately above:
+  skip_crds = true
+  values = [
+    yamlencode({
+      crds = {
+        enabled = false
+      }
+    })
+  ]
 
   depends_on = [
     kubectl_manifest.gateway_api_crds,

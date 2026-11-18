@@ -1,40 +1,19 @@
 locals {
   gateway_api_version   = "v1.6.3"
   envoy_gateway_version = "v1.10.0"
-
-  # Kept on the experimental channel until nothing needs their pre-v1 API versions
-  # (Envoy Gateway < 1.9 and our v1alpha2 TCPRoute manifests):
-  experimental_gateway_api_crds = [
-    for name in ["tcproutes", "tlsroutes", "udproutes"] :
-    "/apis/apiextensions.k8s.io/v1/customresourcedefinitions/${name}.gateway.networking.k8s.io"
-  ]
 }
 
 # Install the Gateway API CRDs (plus the bundled safe-upgrades admission policy):
-data "http" "gateway_api_standard" {
+data "http" "gateway_api_crds" {
   url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/${local.gateway_api_version}/standard-install.yaml"
 }
 
-data "http" "gateway_api_experimental" {
-  url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/${local.gateway_api_version}/experimental-install.yaml"
-}
-
-data "kubectl_file_documents" "gateway_api_standard" {
-  content = data.http.gateway_api_standard.response_body
-}
-
-data "kubectl_file_documents" "gateway_api_experimental" {
-  content = data.http.gateway_api_experimental.response_body
+data "kubectl_file_documents" "gateway_api_crds" {
+  content = data.http.gateway_api_crds.response_body
 }
 
 resource "kubectl_manifest" "gateway_api_crds" {
-  for_each = merge(
-    data.kubectl_file_documents.gateway_api_standard.manifests,
-    {
-      for key, manifest in data.kubectl_file_documents.gateway_api_experimental.manifests :
-      key => manifest if contains(local.experimental_gateway_api_crds, key)
-    }
-  )
+  for_each  = data.kubectl_file_documents.gateway_api_crds.manifests
   yaml_body = each.value
 
   server_side_apply = true

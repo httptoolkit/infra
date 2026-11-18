@@ -12,7 +12,7 @@ resource "scaleway_vpc_private_network" "main" {
 
 resource "scaleway_k8s_cluster" "main" {
   name                        = "htk-production-cluster"
-  version                     = "1.35"
+  version                     = "1.36"
   cni                         = "cilium"
   delete_additional_resources = true
   private_network_id          = scaleway_vpc_private_network.main.id

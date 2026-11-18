@@ -1,21 +1,72 @@
-# Install the Gateway API CRDs (n.b. standard, not experimental)
-data "http" "gateway_api_crds" {
-  url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml"
+locals {
+  gateway_api_version   = "v1.6.3"
+  envoy_gateway_version = "v1.10.0"
+
+  # Kept on the experimental channel until nothing needs their pre-v1 API versions
+  # (Envoy Gateway < 1.9 and our v1alpha2 TCPRoute manifests):
+  experimental_gateway_api_crds = [
+    for name in ["tcproutes", "tlsroutes", "udproutes"] :
+    "/apis/apiextensions.k8s.io/v1/customresourcedefinitions/${name}.gateway.networking.k8s.io"
+  ]
 }
 
-data "kubectl_file_documents" "gateway_api_crds" {
-  content = data.http.gateway_api_crds.response_body
+# Install the Gateway API CRDs (plus the bundled safe-upgrades admission policy):
+data "http" "gateway_api_standard" {
+  url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/${local.gateway_api_version}/standard-install.yaml"
+}
+
+data "http" "gateway_api_experimental" {
+  url = "https://github.com/kubernetes-sigs/gateway-api/releases/download/${local.gateway_api_version}/experimental-install.yaml"
+}
+
+data "kubectl_file_documents" "gateway_api_standard" {
+  content = data.http.gateway_api_standard.response_body
+}
+
+data "kubectl_file_documents" "gateway_api_experimental" {
+  content = data.http.gateway_api_experimental.response_body
 }
 
 resource "kubectl_manifest" "gateway_api_crds" {
-  for_each  = data.kubectl_file_documents.gateway_api_crds.manifests
+  for_each = merge(
+    data.kubectl_file_documents.gateway_api_standard.manifests,
+    {
+      for key, manifest in data.kubectl_file_documents.gateway_api_experimental.manifests :
+      key => manifest if contains(local.experimental_gateway_api_crds, key)
+    }
+  )
   yaml_body = each.value
 
   server_side_apply = true
+  # Some of these were originally installed by the Envoy Gateway Helm chart:
+  force_conflicts = true
+  wait            = true
+
+  # Deleting a CRD deletes every resource of that type (all gateways & routes):
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+# Envoy Gateway's own CRDs, which its Helm chart installs but never upgrades:
+data "http" "envoy_gateway_crds" {
+  url = "https://github.com/envoyproxy/gateway/releases/download/${local.envoy_gateway_version}/envoy-gateway-crds.yaml"
+}
+
+data "kubectl_file_documents" "envoy_gateway_crds" {
+  content = data.http.envoy_gateway_crds.response_body
+}
+
+resource "kubectl_manifest" "envoy_gateway_crds" {
+  for_each  = data.kubectl_file_documents.envoy_gateway_crds.manifests
+  yaml_body = each.value
+
+  server_side_apply = true
+  force_conflicts   = true
   wait              = true
 
   lifecycle {
-    ignore_changes = [yaml_body]
+    prevent_destroy = true
   }
 }
 
@@ -35,7 +86,10 @@ resource "helm_release" "envoy_gateway" {
   create_namespace = true
   wait             = true
 
-  depends_on = [kubectl_manifest.gateway_api_crds]
+  depends_on = [
+    kubectl_manifest.gateway_api_crds,
+    kubectl_manifest.envoy_gateway_crds
+  ]
 }
 
 resource "kubectl_manifest" "gateway_class" {

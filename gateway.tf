@@ -93,6 +93,8 @@ resource "kubectl_manifest" "gateway_class" {
     }
   })
 
+  server_side_apply = true
+
   depends_on = [helm_release.envoy_gateway]
 }
 
@@ -211,6 +213,9 @@ resource "kubectl_manifest" "gateways" {
       }
     }
   })
+
+  server_side_apply = true
+
   depends_on = [
     helm_release.envoy_gateway,
     kubectl_manifest.letsencrypt_prod
@@ -240,6 +245,9 @@ resource "kubectl_manifest" "force_h2_endpoint_admin_policy" {
       }
     }
   })
+
+  server_side_apply = true
+
   depends_on = [kubectl_manifest.gateways]
 }
 
@@ -266,6 +274,9 @@ resource "kubectl_manifest" "allow_h2_public_endpoint_policy" {
       }
     }
   })
+
+  server_side_apply = true
+
   depends_on = [kubectl_manifest.gateways]
 }
 
@@ -289,6 +300,8 @@ resource "kubectl_manifest" "proxy_protocol_policy" {
       proxyProtocol = {}
     }
   })
+
+  server_side_apply = true
 
   depends_on = [kubectl_manifest.gateways]
 }

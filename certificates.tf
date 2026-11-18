@@ -58,6 +58,8 @@ resource "kubectl_manifest" "letsencrypt_prod" {
     }
   })
 
+  server_side_apply = true
+
   depends_on = [
     helm_release.cert_manager,
     helm_release.cert_manager_scaleway_webhook
@@ -130,6 +132,9 @@ resource "kubectl_manifest" "cert_wildcard_httptoolkit_tech" {
       ]
     }
   })
+
+  server_side_apply = true
+
   depends_on = [kubectl_manifest.letsencrypt_prod]
 }
 
@@ -155,6 +160,9 @@ resource "kubectl_manifest" "cert_wildcard_httptoolk_it" {
       ]
     }
   })
+
+  server_side_apply = true
+
   depends_on = [kubectl_manifest.letsencrypt_prod]
 }
 
@@ -179,4 +187,6 @@ resource "kubectl_manifest" "cert_reference_grant" {
       }]
     }
   })
+
+  server_side_apply = true
 }

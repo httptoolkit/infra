@@ -91,6 +91,7 @@ resource "helm_release" "cert_manager_scaleway_webhook" {
   name       = "scaleway-webhook"
   repository = "https://helm.scw.cloud"
   chart      = "scaleway-certmanager-webhook"
+  version    = "0.4.3"
   namespace  = "certificates"
 
   depends_on = [helm_release.cert_manager]

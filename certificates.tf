@@ -169,7 +169,7 @@ resource "kubectl_manifest" "cert_wildcard_httptoolk_it" {
 # Allow access to certs from the Gateway namespace:
 resource "kubectl_manifest" "cert_reference_grant" {
   yaml_body = yamlencode({
-    apiVersion = "gateway.networking.k8s.io/v1beta1"
+    apiVersion = "gateway.networking.k8s.io/v1"
     kind       = "ReferenceGrant"
     metadata = {
       name      = "allow-gateway-to-certs"
@@ -189,4 +189,6 @@ resource "kubectl_manifest" "cert_reference_grant" {
   })
 
   server_side_apply = true
+
+  upgrade_api_version = true
 }
